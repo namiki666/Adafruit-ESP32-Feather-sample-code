@@ -20,9 +20,6 @@
 #include "WiFiClientSecure.h"
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
-#include <Adafruit_Sensor.h>
-// #include <DHT.h>
-// #include <DHT_U.h>
 #include "config.h"
 
 /************ Global State (you don't need to change this!) ******************/
@@ -37,29 +34,26 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 
 // Setup a feed called 'test' for publishing.
 // Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
-Adafruit_MQTT_Publish ldr = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/ldr");
-Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoffbutton");
-// Adafruit_MQTT_Publish temperature = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/temperature");
-// Adafruit_MQTT_Publish humidity = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/humidity");
+Adafruit_MQTT_Publish test = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/test");
+Adafruit_MQTT_Publish ldrPublish = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/ldrvalue");
+Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoff");
 
-// Adafruit_MQTT_Subscribe ONOFF_FEED = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoffbutton");
-// Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, ONOFF_FEED);
-
-#define LED_PIN 27
+#define LED_PIN 12
 #define LDR_PIN 32
 
-int ldrValue = 0;
-
-// DHT_Unified dht(DATA_PIN, DHT22);
-
 /*************************** Sketch Code ************************************/
+int ldrValue = 0;
+bool onoff = false;
+// uint32_t x = 0;
+// void MQTT_connect();
 
 void setup()
 {
+  pinMode(LED_PIN, OUTPUT);
+
+  // initialize the Serial Monitor
   Serial.begin(115200);
   delay(10);
-
-  Serial.println(F("Adafruit IO MQTTS (SSL/TLS) Example"));
 
   // Connect to WiFi access point.
   Serial.println();
@@ -67,13 +61,7 @@ void setup()
   Serial.print("Connecting to ");
   Serial.println(WLAN_SSID);
 
-  // dht.begin();
-
-  delay(1000);
-
   WiFi.begin(WLAN_SSID, WLAN_PASS);
-  delay(2000);
-
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -81,58 +69,22 @@ void setup()
   }
   Serial.println();
 
-  pinMode(LED_PIN, OUTPUT);
-
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 
   // Set Adafruit IO's root CA
   client.setCACert(adafruitio_root_ca);
-}
 
-// uint32_t x = 0;
+  // Scbcribe to feed
+  MQTT_subscribe();
+}
 
 void loop()
 {
-  // Ensure the connection to the MQTT server is alive (this will make the first
-  // connection and automatically reconnect when disconnected).  See the MQTT_connect
-  // function definition further below.
   MQTT_connect();
-
-  // sensors_event_t event;
-  // dht.temperature().getEvent(&event);
-
-  // float celsius = event.temperature;
-  // float fahrenheit = (celsius * 1.8) + 32;
-  //
-  // Serial.print("celsius: ");
-  // Serial.print(celsius);
-  // Serial.println("C");
-  //
-  // Serial.print("fahrenheit: ");
-  // Serial.print(fahrenheit);
-  // Serial.println("F");
-  //
-  // // Now we can publish stuff!
-  // Serial.print(F("\nSending val "));
-  // Serial.print(x);
-  // Serial.print(F(" to test feed..."));
-  //
-  // dht.humidity().getEvent(&event);
-  //
-  // Serial.print("humidity: ");
-  // Serial.print(event.relative_humidity);
-  // Serial.println("%");
-  //
-  // temperature.publish(fahrenheit);
-  // humidity.publish(event.relative_humidity);
-
-  ldrValue = analogRead(LDR_PIN);
-  Serial.print("LDR Value: ");
-  Serial.println(ldrValue);
-
-  mqtt.subscribe(&onoffbutton);
+  MQTT_publish();
+  LED_state();
 
   Adafruit_MQTT_Subscribe *subscription;
   while ((subscription = mqtt.readSubscription(5000)))
@@ -145,30 +97,68 @@ void loop()
 
       if (strcmp((char *)onoffbutton.lastread, "ON") == 0)
       {
-
-        digitalWrite(LED_PIN, LOW);
-
-        ldrValue = analogRead(LDR_PIN);
-        ldr.publish(ldrValue);
+        onoff = true;
       }
-      if (strcmp((char *)onoffbutton.lastread, "OFF") == 0)
+      else if (strcmp((char *)onoffbutton.lastread, "OFF") == 0)
       {
-        digitalWrite(LED_PIN, HIGH);
+        onoff = false;
       }
     }
   }
 
-  // if (!test.publish(x++))
+  // ping the server to keep the mqtt connection alive
+  // if (!mqtt.ping())
   // {
-  //   Serial.println(F("Failed"));
+  //   Serial.println(F("MQTT Ping failed."));
+  //   Serial.println(F("Disconnect"));
+  //   mqtt.disconnect();
   // }
-  // else
-  // {
-  //   Serial.println(F("OK!"));
-  // }
+}
 
-  // wait a couple seconds to avoid rate limit
-  // delay(5000);
+void LED_state()
+{
+  if (onoff)
+  {
+    digitalWrite(LED_PIN, LOW);
+  }
+  else
+  {
+    digitalWrite(LED_PIN, HIGH);
+  }
+}
+
+void MQTT_publish()
+{
+  if (!onoff)
+  {
+    return;
+  }
+  // Now we can publish stuff!
+  ldrValue = analogRead(LDR_PIN);
+  Serial.print(F("Publishing to LDR feed: "));
+  Serial.print(ldrValue);
+  Serial.print(F(" ..."));
+  if (!ldrPublish.publish(ldrValue))
+  {
+    Serial.println(F("Failed"));
+  }
+  else
+  {
+    Serial.println(F("OK!"));
+  }
+}
+
+void MQTT_subscribe()
+{
+  // Now we can subscribe to a feed
+  Serial.print(F("Subscribing to "));
+  Serial.print(AIO_USERNAME "/feeds/onoff");
+  Serial.print(" ... ");
+  if (!mqtt.subscribe(&onoffbutton))
+  {
+    Serial.println(F("Failed"));
+  }
+  Serial.println(F("OK!"));
 }
 
 // Function to connect and reconnect as necessary to the MQTT server.
