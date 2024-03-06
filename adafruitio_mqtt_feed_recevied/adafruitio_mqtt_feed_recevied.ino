@@ -17,7 +17,6 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 
 // Setup a feed called 'test' for publishing.
 // Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
-Adafruit_MQTT_Publish test = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/test");
 Adafruit_MQTT_Publish ldrPublish = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/ldrvalue");
 Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoff");
 
@@ -88,14 +87,6 @@ void loop()
       }
     }
   }
-
-  // ping the server to keep the mqtt connection alive
-  // if (!mqtt.ping())
-  // {
-  //   Serial.println(F("MQTT Ping failed."));
-  //   Serial.println(F("Disconnect"));
-  //   mqtt.disconnect();
-  // }
 }
 
 void LED_state()
