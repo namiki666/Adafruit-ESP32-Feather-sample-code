@@ -103,10 +103,10 @@ void LED_state()
 
 void MQTT_publish()
 {
-  if (!onoff)
-  {
-    return;
-  }
+  // if (!onoff)
+  // {
+  //   return;
+  // }
   // Now we can publish stuff!
   ldrValue = analogRead(LDR_PIN);
   Serial.print(F("Publishing to LDR feed: "));
