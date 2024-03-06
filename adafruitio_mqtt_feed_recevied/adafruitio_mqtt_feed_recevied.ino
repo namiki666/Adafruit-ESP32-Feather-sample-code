@@ -15,7 +15,6 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 
 /****************************** Feeds ***************************************/
 
-// Setup a feed called 'test' for publishing.
 // Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
 Adafruit_MQTT_Publish ldrPublish = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/ldrvalue");
 Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoff");
@@ -26,8 +25,6 @@ Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAM
 /*************************** Sketch Code ************************************/
 int ldrValue = 0;
 bool onoff = false;
-// uint32_t x = 0;
-// void MQTT_connect();
 
 void setup()
 {
@@ -40,7 +37,7 @@ void setup()
   // Connect to WiFi access point.
   Serial.println();
   Serial.println();
-  Serial.print("Connecting to ");
+  Serial.print(F("Connecting to "));
   Serial.println(WLAN_SSID);
 
   WiFi.begin(WLAN_SSID, WLAN_PASS);
@@ -51,8 +48,8 @@ void setup()
   }
   Serial.println();
 
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  Serial.println(F("WiFi connected"));
+  Serial.println(F("IP address: "));
   Serial.println(WiFi.localIP());
 
   // Set Adafruit IO's root CA
@@ -103,10 +100,6 @@ void LED_state()
 
 void MQTT_publish()
 {
-  // if (!onoff)
-  // {
-  //   return;
-  // }
   // Now we can publish stuff!
   ldrValue = analogRead(LDR_PIN);
   Serial.print(F("Publishing to LDR feed: "));
@@ -147,13 +140,13 @@ void MQTT_connect()
     return;
   }
 
-  Serial.print("Connecting to MQTT... ");
+  Serial.print(F("Connecting to MQTT... "));
 
   uint8_t retries = 3;
   while ((ret = mqtt.connect()) != 0)
   { // connect will return 0 for connected
     Serial.println(mqtt.connectErrorString(ret));
-    Serial.println("Retrying MQTT connection in 5 seconds...");
+    Serial.println(F("Retrying MQTT connection in 5 seconds..."));
     mqtt.disconnect();
     delay(5000); // wait 5 seconds
     retries--;
@@ -165,5 +158,5 @@ void MQTT_connect()
     }
   }
 
-  Serial.println("MQTT Connected!");
+  Serial.println(F("MQTT Connected!"));
 }
